@@ -1,0 +1,10 @@
+#scrubextensionif{
+	width: 80%;
+	min-width: 600px;
+	height: 100%;
+	position: fixed;
+	top: 0;
+	left: 10%;
+	z-index: 2147483;
+	background-color: #FFFFFF;
+}
