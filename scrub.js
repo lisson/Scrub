@@ -53,14 +53,11 @@ function findMainDiv(node)
 	//var divp = findpDivs(node.find('div'));
 	var paragraphs = findpDivs(divnames);
 	var target = findArticleTags(paragraphs[0]);
+	findRelevantHeading(paragraphs[0]);
 	console.log("Found - DIV ID: " + paragraphs[0].attr("id") +
 					" NAME: " + paragraphs[0].attr("name") +
 					" CLASS: " + paragraphs[0].attr("class") );
 	return target;
-}
-
-function crossCheckResults(divnames, divp)
-{
 }
 
 function applySettings(container)
@@ -131,6 +128,24 @@ function checkRegex(expr, node)
 	return false;
 }
 
+//recursively float up the dom tree from the target element
+//Looking for the closest <h1> element
+function findRelevantHeading(startnode)
+{
+	var parent = startnode;
+	var current = null;
+	console.log("Number of h1: " + parent.find("h1").length);
+	var h1count=0;
+	//Would eventually bubble up to body if no <h1> is used.
+	while(h1count === 0)
+	{
+		h1count = parent.find("h1").length;
+		current = parent;
+		parent = parent.parent();
+	}
+	return current.find("h1");
+}
+
 //Saves all p and img elements into an array
 //Takes jQuery object
 function findArticleTags(startNode)
@@ -138,8 +153,11 @@ function findArticleTags(startNode)
 	var article = new Array();
 	var par;
 	var image;
-	var title = $('body').find("h1");
-	article.push(title.clone());
+	var title = findRelevantHeading(startNode);
+	if(title != null && title.prop("nodeName") != "BODY")
+	{
+		article.push(title.clone());
+	}
 	startNode.find("*").each(function(){
 		if($(this).prop("nodeName") === "P")
 		{
@@ -157,4 +175,3 @@ function findArticleTags(startNode)
 	});
 	return article;
 }
-
