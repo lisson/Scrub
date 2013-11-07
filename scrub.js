@@ -51,10 +51,11 @@ function findMainDiv(node)
 	//find div containing the names.
 	var divnames = checkDivNameId(node.find('div'));
 	//var divp = findpDivs(node.find('div'));
-	var target = findArticleTags(divnames[0]);
-	console.log("DIV ID: " + divnames[0].attr("id") +
-					" NAME: " + divnames[0].attr("name") +
-					" CLASS: " + divnames[0].attr("class") );
+	var paragraphs = findpDivs(divnames);
+	var target = findArticleTags(paragraphs[0]);
+	console.log("Found - DIV ID: " + paragraphs[0].attr("id") +
+					" NAME: " + paragraphs[0].attr("name") +
+					" CLASS: " + paragraphs[0].attr("class") );
 	return target;
 }
 
@@ -67,39 +68,40 @@ function applySettings(container)
 	container.find('p').css("line-height", "2em");
 }
 
-//Find the div with more than 2 <p> children
+//Find the div with more than 2 <p> descendent
 //I hope no one writes an article with 1 <p>.
 function findpDivs(node)
 {
 	var target = new Array();
 	var count;
-	$('body').find("*").each(function(){
+	for(var i=0;i<node.length;i++)
+	{
+		node[i].find("*").each(function(){
+			count = $(this).children('p').length;
+			if(count > 1)
+			{
+				target.push( $(this) );
+			}
+		});
+	}
+	/*
+	node.find("*").each(function(){
 		count = $(this).children('p').length;
 		if(count > 1)
 		{
 			target.push( $(this) );
 		}
 	});
+	*/
 	return target;
 }
 
 //find divs that has id containing "content/main"
 function checkDivNameId(nodes){
 	var results = new Array();
-	var content = /.*content.*/i;
-	var main = /.*main.*/i;
+	var content = /.*(content|main|article).*/i;
 	nodes.each(function(){
-		if(content.test($(this).attr("id")) ||
-			content.test($(this).attr("name")) ||
-			content.test($(this).attr("class"))
-			)
-		{
-			results.push($(this));
-		}
-		else if(main.test($(this).attr("id")) ||
-				main.test($(this).attr("name")) ||
-				main.test($(this).attr("class"))
-				)
+		if(checkRegex(content, $(this) ) )
 		{
 			results.push($(this));
 		}
@@ -112,6 +114,22 @@ function checkDivNameId(nodes){
 	return results;
 }
 
+function checkRegex(expr, node)
+{
+	if(expr.test(node.attr("id")))
+	{
+		return true;
+	}
+	else if (expr.test(node.attr("class")))
+	{
+		return true;
+	}
+	else if (expr.test(node.attr("name")))
+	{
+		return true;
+	}
+	return false;
+}
 
 //Saves all p and img elements into an array
 //Takes jQuery object
@@ -120,6 +138,8 @@ function findArticleTags(startNode)
 	var article = new Array();
 	var par;
 	var image;
+	var title = $('body').find("h1");
+	article.push(title.clone());
 	startNode.find("*").each(function(){
 		if($(this).prop("nodeName") === "P")
 		{
