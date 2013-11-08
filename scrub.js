@@ -52,11 +52,12 @@ function findMainDiv(node)
 	var divnames = checkDivNameId(node.find('div'));
 	//var divp = findpDivs(node.find('div'));
 	var paragraphs = findpDivs(divnames);
-	var target = findArticleTags(paragraphs[0]);
-	findRelevantHeading(paragraphs[0]);
-	console.log("Found - DIV ID: " + paragraphs[0].attr("id") +
-					" NAME: " + paragraphs[0].attr("name") +
-					" CLASS: " + paragraphs[0].attr("class") );
+	var par = findHighestCharCount(paragraphs);
+	var target = findArticleTags(par);
+	//findRelevantHeading(par);
+	console.log("Found - DIV ID: " + par.attr("id") +
+					" NAME: " + par.attr("name") +
+					" CLASS: " + par.attr("class") );
 	return target;
 }
 
@@ -72,6 +73,34 @@ function applySettings(container, data)
 	
 }
 
+function findHighestCharCount(nodes)
+{
+	if(Array.isArray(nodes) === false)
+	{
+		return undefined;
+	}
+	var count = 0;
+	var highest = 0;
+	var highestP;
+	var clone;
+	for(var i=0;i<nodes.length;i++)
+	{
+		count = 0;
+		nodes[i].find("p").each(function(){
+			clone = $(this).clone();
+			clone.find("*").remove();
+			count = count + clone.html().length;
+		});
+		if(count > highest)
+		{
+			highest = count;
+			highestP = nodes[i];
+		}
+		console.log(count);
+	}
+	return highestP;
+}
+
 //Find the div with more than 2 <p> descendent
 //I hope no one writes an article with 1 <p>.
 function findpDivs(node)
@@ -82,7 +111,18 @@ function findpDivs(node)
 	{
 		node[i].find("*").each(function(){
 			count = $(this).children('p').length;
-			if(count > 1)
+			if(count > 3)
+			{
+				target.push( $(this) );
+			}
+		});
+	}
+	//If divs found nothing.
+	if(target.length === 0)
+	{
+		$('body').find("*").each(function(){
+			count = $(this).children('p').length;
+			if(count > 3)
 			{
 				target.push( $(this) );
 			}
@@ -118,8 +158,7 @@ function checkDivNameId(nodes){
 	return results;
 }
 
-function checkRegex(expr, node)
-{
+function checkRegex(expr, node){
 	if(expr.test(node.attr("id")))
 	{
 		return true;
@@ -175,6 +214,11 @@ function findArticleTags(startNode)
 			article.push(par);
 		}
 		else if($(this).prop("nodeName") === "IMG")
+		{
+			image = $(this).clone();
+			article.push(image);
+		}
+		else if($(this).prop("nodeName") === "H2")
 		{
 			image = $(this).clone();
 			article.push(image);
