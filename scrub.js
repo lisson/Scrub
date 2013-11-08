@@ -6,6 +6,7 @@ Copyright (c) 2013 Yi LI <yili604@gmail.com>
 
 $('body').click(function(e) {
 	$('#scrubextensionif').remove();
+	$('#scruboverlay-shadow').remove();
 });
 
 chrome.runtime.onMessage.addListener(messageHandler)
@@ -32,6 +33,8 @@ function initDialog(data)
 	}
 	applySettings(container, data);
 	var iframe = $('<iframe id="scrubextensionif"></iframe>');
+	var overlay = $('<div id="scruboverlay-shadow"></div>');
+	$('body').append(overlay);
 	$('body').append(iframe);
 	iframe.ready(function(){
 		/*fuck this shit.
