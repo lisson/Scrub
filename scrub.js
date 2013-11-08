@@ -13,15 +13,15 @@ chrome.runtime.onMessage.addListener(messageHandler)
 function messageHandler(message, sender, sendResponse){
 	//console.log(message.data);
 	if(message.command === 'scrub.InitDialog')
-    {
-    	initDialog(message.data);
+	{
+		initDialog(message.data);
 	}
 	//If we don't remove handlers everytime then they will stay alive
 	//and receive messages and call init n times.
 	chrome.runtime.onMessage.removeListener(messageHandler);
 }
 
-function initDialog(url)
+function initDialog(data)
 {
 	var container = $("<div></div>");
 	var article = findMainDiv( $('body') );
@@ -30,7 +30,7 @@ function initDialog(url)
 	{
 		container.append(article[i]);
 	}
-	applySettings(container);
+	applySettings(container, data);
 	var iframe = $('<iframe id="scrubextensionif"></iframe>');
 	$('body').append(iframe);
 	iframe.ready(function(){
@@ -60,9 +60,16 @@ function findMainDiv(node)
 	return target;
 }
 
-function applySettings(container)
+function applySettings(container, data)
 {
-	container.find('p').css("line-height", "2em");
+	
+	var Settings = JSON.parse(data);
+	for(var i=0;i<Settings.length;i++)
+	{
+		container.find('p').css(Settings[i][0], Settings[i][1]);
+	}
+	//container.find('p').css("line-height", "2em");
+	
 }
 
 //Find the div with more than 2 <p> descendent

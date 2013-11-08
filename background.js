@@ -1,8 +1,9 @@
 chrome.browserAction.onClicked.addListener(function(tab) {
 	chrome.tabs.executeScript(tab.id, { file: "jquery-2.0.3.js" }, function(){
 			chrome.tabs.executeScript(tab.id, {file: "scrub.js" }, function(){
-					var display = chrome.extension.getURL("display.css");
-					chrome.tabs.sendMessage(tab.id, {command: "scrub.InitDialog", data: display});
+					//var display = chrome.extension.getURL("display.css");
+					var Settings = localStorage["Settings"];
+					chrome.tabs.sendMessage(tab.id, {command: "scrub.InitDialog", data: Settings});
 			})
 		});
 	chrome.tabs.insertCSS(
