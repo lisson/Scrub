@@ -4,18 +4,25 @@ The MIT License (MIT)
 Copyright (c) 2013 Yi LI <yili604@gmail.com>
 */
 
+var isOpen = false;
+
 $('body').click(function(e) {
 	$('#scrubextensionif').remove();
 	$('#scruboverlay-shadow').remove();
+	if (isOpen) {
+		chrome.runtime.sendMessage({command: "scrub.close"});
+		isOpen = false;
+	}
 });
 
-chrome.runtime.onMessage.addListener(messageHandler)
+chrome.runtime.onMessage.addListener(messageHandler);
 
 function messageHandler(message, sender, sendResponse){
 	//console.log(message.data);
 	if(message.command === 'scrub.InitDialog')
 	{
 		initDialog(message.data);
+		isOpen = true;
 	}
 	//If we don't remove handlers everytime then they will stay alive
 	//and receive messages and call init n times.
