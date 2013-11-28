@@ -2,7 +2,15 @@ chrome.browserAction.onClicked.addListener(function(tab) {
 	chrome.tabs.executeScript(tab.id, { file: "jquery-2.0.3.js" }, function(){
 			chrome.tabs.executeScript(tab.id, {file: "scrub.js" }, function(){
 					//var display = chrome.extension.getURL("display.css");
-					var Settings = localStorage["Settings"];
+					var Settings = localStorage.getItem("Settings");
+					if(Settings === null)
+					{
+						console.log("No settings found. Loading default");
+						var rules = new Array();
+						rules.push(["line-height", "2em"]);
+						Settings = JSON.stringify(rules);
+						localStorage.setItem('Settings', Settings);
+					}
 					chrome.tabs.sendMessage(tab.id, {command: "scrub.InitDialog", data: Settings});
 			})
 		});

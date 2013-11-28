@@ -66,7 +66,6 @@ function findMainDiv(node)
 
 function applySettings(container, data)
 {
-	
 	var Settings = JSON.parse(data);
 	for(var i=0;i<Settings.length;i++)
 	{
