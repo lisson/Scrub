@@ -9,24 +9,18 @@ var isOpen = false;
 $('body').click(function(e) {
 	$('#scrubextensionif').remove();
 	$('#scruboverlay-shadow').remove();
-	if (isOpen) {
-		chrome.runtime.sendMessage({command: "scrub.close"});
-		isOpen = false;
-	}
+	isOpen = false;
 });
 
 chrome.runtime.onMessage.addListener(messageHandler);
 
 function messageHandler(message, sender, sendResponse){
 	//console.log(message.data);
-	if(message.command === 'scrub.InitDialog')
+	if(message.command === 'scrub.InitDialog' && isOpen === false)
 	{
 		initDialog(message.data);
 		isOpen = true;
 	}
-	//If we don't remove handlers everytime then they will stay alive
-	//and receive messages and call init n times.
-	chrome.runtime.onMessage.removeListener(messageHandler);
 }
 
 function initDialog(data)
@@ -60,8 +54,15 @@ function findMainDiv(node)
 {
 	//find div containing the names.
 	var divnames = checkDivNameId(node.find('div'));
-	//var divp = findpDivs(node.find('div'));
+	if (divnames.length === 0) {
+		console.log("No divs found.");
+		return null;
+	}
 	var paragraphs = findpDivs(divnames);
+	if (paragraphs.length === 0) {
+		console.log("No <p> found.");
+		return null;
+	}
 	var par = findHighestCharCount(paragraphs);
 	var target = findArticleTags(par);
 	//findRelevantHeading(par);
@@ -110,7 +111,7 @@ function findHighestCharCount(nodes)
 	return highestP;
 }
 
-//Find the div with more than 2 <p> descendent
+//Find the div with more than 2 <p> children
 //I hope no one writes an article with 1 <p>.
 function findpDivs(node)
 {
