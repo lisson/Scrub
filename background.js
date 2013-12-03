@@ -5,20 +5,19 @@ Copyright (c) 2013 Yi LI <yili604@gmail.com>
 */
 
 function loadRules(){
-	var Settings = localStorage.getItem("Settings");
+	var Settings = localStorage.getItem("userCSS");
 	if(Settings === null)
 	{
 		console.log("No settings found. Loading default");
-		var rules = new Array();
-		rules.push(["line-height", "2em"]);
-		Settings = JSON.stringify(rules);
-		localStorage.setItem('Settings', Settings);
+		Settings = "p { line-height: 2em; }";
+		localStorage.setItem('userCSS', Settings);
 	}
 	return Settings;
 }
 
 chrome.browserAction.onClicked.addListener(function(tab) {
 	var Settings = loadRules();
+	console.log(Settings);
 	chrome.tabs.sendMessage(tab.id, {command: "scrub.InitDialog", data: Settings}, function(response) {	
 		if (response) {
 			//Message is received, do nothing.

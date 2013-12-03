@@ -19,6 +19,7 @@ function messageHandler(message, sender, sendResponse){
 	if(message.command === 'scrub.InitDialog' && isOpen === false)
 	{
 		initDialog(message.data);
+		console.log(data);
 		isOpen = true;
 	}
 }
@@ -32,19 +33,12 @@ function initDialog(data)
 	{
 		container.append(article[i]);
 	}
-	applySettings(container, data);
 	var iframe = $('<iframe id="scrubextensionif"></iframe>');
 	var overlay = $('<div id="scruboverlay-shadow"></div>');
 	$('body').append(overlay);
 	$('body').append(iframe);
+	applySettings(iframe, data);
 	iframe.ready(function(){
-		/*fuck this shit.
-		var cssfile = $('<link/>');
-		cssfile.attr("type", "text/css");
-		cssfile.attr("rel", "stylesheet");
-		cssfile.attr("href", url);
-		iframe.contents().find('head').append(cssfile);
-		*/
 		iframe.contents().find('body').append(container);
 	});
 }
@@ -54,9 +48,15 @@ function findMainDiv(node)
 {
 	//find div containing the names.
 	var divnames = checkDivNameId(node.find('div'));
+	console.log("Found " + divnames.length + " divs");
 	if (divnames.length === 0) {
 		console.log("No divs found.");
 		return null;
+	}
+	else {
+		console.log("Found - DIV ID: " + divnames[0].attr("id") +
+					" NAME: " + divnames[0].attr("name") +
+					" CLASS: " + divnames[0].attr("class") );
 	}
 	var paragraphs = findpDivs(divnames);
 	if (paragraphs.length === 0) {
@@ -74,13 +74,11 @@ function findMainDiv(node)
 
 function applySettings(container, data)
 {
-	var Settings = JSON.parse(data);
-	for(var i=0;i<Settings.length;i++)
-	{
-		container.find('p').css(Settings[i][0], Settings[i][1]);
-	}
-	//container.find('p').css("line-height", "2em");
-	
+	var style = $("<style></style>");
+	style.text(data);
+	//console.log(data);
+	//insert into the iframe
+	container.contents().find("head").append(style);
 }
 
 function findHighestCharCount(nodes)
@@ -111,8 +109,7 @@ function findHighestCharCount(nodes)
 	return highestP;
 }
 
-//Find the div with more than 2 <p> children
-//I hope no one writes an article with 1 <p>.
+//Find the div <p> children
 function findpDivs(node)
 {
 	var target = new Array();
@@ -121,7 +118,7 @@ function findpDivs(node)
 	{
 		node[i].find("*").each(function(){
 			count = $(this).children('p').length;
-			if(count > 3)
+			if(count > 1)
 			{
 				target.push( $(this) );
 			}
@@ -132,7 +129,7 @@ function findpDivs(node)
 	{
 		$('body').find("*").each(function(){
 			count = $(this).children('p').length;
-			if(count > 3)
+			if(count > 1)
 			{
 				target.push( $(this) );
 			}
@@ -150,7 +147,7 @@ function findpDivs(node)
 	return target;
 }
 
-//find divs that has id containing "content/main"
+//find divs that has id containing "content/main/article"
 function checkDivNameId(nodes){
 	var results = new Array();
 	var content = /.*(content|main|article).*/i;
