@@ -36,7 +36,6 @@ function initDialog(data)
 {
 	var container = $("<div></div>");
 	var article = findMainDiv( $('body') );
-	//console.log(container.html());
 	for(var i = 0;i<article.length;i++)
 	{
 		container.append(article[i]);
@@ -55,7 +54,7 @@ function initDialog(data)
 function findMainDiv(node)
 {
 	var target = findContentTagRatio($('body'));
-	//printNode(target);
+	printNode(target);
 	var maindiv = findArticleTags(target);
 	return maindiv;
 }
@@ -125,7 +124,7 @@ function findContentTagRatio(node)
 	var highestCT = 0;
 	var targetNode = null;
 	var c;
-	node.find("div").each(function(index) {
+	node.find("div").each(function() {
 		c = $( this ).clone();
 		c.find('script').each(function() { $(this).remove() });
 		c.find('style').each(function() { $(this).remove() });
@@ -133,21 +132,25 @@ function findContentTagRatio(node)
 		var content = c.text();
 		//remove the ptags
 		c.find('p').each(function() { $(this).remove() });
+		c.find('span').each(function() { $(this).remove() });
 		//console.log(c);
 		var tags = c.find("*").length;
-		if (tags === 0) {
-			console.log($( this ).attr("id") + ": has no tags");
+		var CT;
+		if (tags === 0)
+		{
+			//If no other nested tags, all text is considered distributed over 1 tag.
+			CT = content.length;
 		}
 		else
 		{
-			var CT = content.length/tags;
-			if (CT > highestCT) {
+			CT = content.length/tags;
+		}
+		if (CT > highestCT) {
 				targetNode = this;
 				highestCT = CT;
-			}
-			//printNode( $( this ) );
-			//console.log(" " + content.length/tags);
 		}
+		printNode( $( this ) );
+		console.log(" " + CT);
 	});
 	console.log("Highest CT: " + highestCT);
 	return $( targetNode );
