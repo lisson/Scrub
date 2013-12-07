@@ -124,35 +124,53 @@ function findContentTagRatio(node)
 	var highestCT = 0;
 	var targetNode = null;
 	var c;
+	var comment = /.*comment.*/i;
 	node.find("div").each(function() {
-		c = $( this ).clone();
-		c.find('script').each(function() { $(this).remove() });
-		c.find('style').each(function() { $(this).remove() });
-		c.find('img').each(function() { $(this).remove() });
-		var content = c.text();
-		//remove the ptags
-		c.find('p').each(function() { $(this).remove() });
-		c.find('span').each(function() { $(this).remove() });
-		//console.log(c);
-		var tags = c.find("*").length;
-		var CT;
-		if (tags === 0)
+		//We skip comment divs
+		if(checkRegex(comment, $( this ) ) === false )
 		{
-			//If no other nested tags, all text is considered distributed over 1 tag.
-			CT = content.length;
+			c = $( this ).clone();
+			c.find('script').each(function() { $(this).remove() });
+			c.find('style').each(function() { $(this).remove() });
+			c.find('img').each(function() { $(this).remove() });
+			c.find('iframe').each(function() { $(this).remove() });
+			c.find('a').each(function() { $(this).remove() });
+			//Remove the divs that become empty after remove script, style,
+			c.find('div').each(function() {
+				if ( $.trim($( this ).text()) === ''){
+					$( this ).remove();
+				}
+			})
+			var content = $.trim(c.text());
+			//remove the ptags and span because we don't want to include it in calcuation.
+			c.find('p').each(function() { $(this).remove() });
+			c.find('span').each(function() { $(this).remove() });
+			c.find('ins').each(function() { $(this).remove() });
+			c.find('em').each(function() { $(this).remove() });
+			
+			var tags = c.find("*").length;
+			var CT;
+			if (tags === 0)
+			{
+				//If no other nested tags, all text is considered distributed over 1 tag.
+				CT = content.length;
+			}
+			else
+			{
+				CT = content.length/tags;
+			}
+			if (CT > highestCT) {
+					targetNode = this;
+					highestCT = CT;
+			}
+			if (CT > 0) {
+				printNode( $( this ) );
+				console.log(" " + CT);
+			}
 		}
-		else
-		{
-			CT = content.length/tags;
-		}
-		if (CT > highestCT) {
-				targetNode = this;
-				highestCT = CT;
-		}
-		printNode( $( this ) );
-		console.log(" " + CT);
 	});
 	console.log("Highest CT: " + highestCT);
+	console.log( $( targetNode).text());
 	return $( targetNode );
 }
 
@@ -163,4 +181,20 @@ function printNode(node)
 				" ID: " + node.attr("id") +
 				" NAME: " + node.attr("name") +
 				" CLASS: " + node.attr("class") );
+}
+
+function checkRegex(expr, node){
+	if(expr.test(node.attr("id")))
+	{
+	  return true;
+	}
+	else if (expr.test(node.attr("class")))
+	{
+	  return true;
+	}
+	else if (expr.test(node.attr("name")))
+	{
+	  return true;
+	}
+	return false;
 }
