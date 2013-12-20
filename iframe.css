@@ -1,11 +1,12 @@
 #scrubextensionif{
-	max-width: 700px;
+	max-width: 800px;
 	width: 80%;
 	height: 100%;
 	position: fixed;
 	top: 0;
-	left: 10%;
-	z-index: 2147483;
+	left: 50%;
+	margin-left: -400px;
+	z-index: 2147483647;
 	background-color: #FFFFFF;
 }
 
@@ -18,4 +19,22 @@
 	top: 0;
 	left: 0;
 	z-index: 2147482;
+}
+
+@-webkit-keyframes slidedown {
+   from { height: 0%; }
+   to   { height: 100%; }
+}
+
+@-webkit-keyframes slideup {
+   from { height: 100%; }
+   to   { height: 0%; }
+}
+
+.slidedownClass {
+	-webkit-animation: slidedown 1s; /* Safari and Chrome */
+}
+
+.slideupClass {
+	-webkit-animation: slideup 1s; /* Safari and Chrome */
 }

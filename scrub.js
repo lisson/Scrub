@@ -5,11 +5,14 @@ Copyright (c) 2013 Yi LI <yili604@gmail.com>
 */
 
 var isOpen = false;
+var simpleTags = /(IMG|H[2-9]|CODE|DFN|Q)/i;
+var inlineTags = /(A|EM|STRONG)/;
 
 $('body').click(function(e) {
 	$('#scrubextensionif').remove();
 	$('#scruboverlay-shadow').remove();
 	isOpen = false;
+	document.body.style.overflowY = "visible";
 });
 
 $('body').keyup(function(e) {
@@ -17,6 +20,7 @@ $('body').keyup(function(e) {
 		$('#scrubextensionif').remove();
 		$('#scruboverlay-shadow').remove();
 		isOpen = false;
+		document.body.style.overflowY = "visible";
 	}
 });
 
@@ -29,6 +33,7 @@ function messageHandler(message, sender, sendResponse){
 		initDialog(message.data);
 		//console.log(message.data);
 		isOpen = true;
+		document.body.style.overflowY = "hidden";
 	}
 }
 
@@ -48,13 +53,14 @@ function initDialog(data)
 	iframe.ready(function(){
 		iframe.contents().find('body').append(container);
 	});
+	iframe.addClass("slidedownClass");
 }
 
 //Find the div within the given node. Pass body for whole document
 function findMainDiv(node)
 {
-	var target = findContentTagRatio($('body'));
-	printNode(target);
+	var target = findContentTagRatio(node);
+	//printNode(target);
 	var maindiv = findArticleTags(target);
 	return maindiv;
 }
@@ -72,18 +78,43 @@ function applySettings(container, data)
 //Looking for the closest <h1> element
 function findRelevantHeading(startnode)
 {
+	var heading = startnode.find('h1');
+	if (heading.length > 0) {
+		return heading.first();
+	}
+	heading = null;
 	var parent = startnode;
 	var current = null;
-	console.log("Number of h1: " + parent.find("h1").length);
+	//console.log("Number of h1: " + parent.find("h1").length);
 	var h1count=0;
-	//Would eventually bubble up to body if no <h1> is used.
-	while(h1count === 0)
+	var i;
+	//Some sites have imgs in H1 tag. So we look for h1, h2, h3.
+	for(i=1;i<4;i++)
 	{
-		h1count = parent.find("h1").length;
-		current = parent;
-		parent = parent.parent();
+		//Would eventually bubble up to body if no <h1> is used.
+		while(h1count === 0 && parent.prop("nodeName") != "BODY")
+		{
+			h1count = parent.find("h" + i).length;
+			current = parent;
+			parent = parent.parent();
+		}
+		if (h1count > 0) {
+			break;
+		}
+		else
+		{
+			parent = startnode;
+			current = null;
+		}
 	}
-	return current.find("h1");
+	if (current === null) {
+		return null;
+	}
+	var h = current.find("h1").first();
+	h.find("img").remove();
+	var e = h.clone();
+	h.remove();
+	return e;
 }
 
 //Saves all p and img elements into an array
@@ -96,27 +127,55 @@ function findArticleTags(startNode)
 	{
 		article.push(title.clone());
 	}
-	startNode.find("*").each(function(){
-		var clone = $( this ).clone();
-		if(clone.prop("nodeName") === "P")
-		{
-			//Remove the images inside paragraphs, or later img tags will be duplicated
-			clone.find('img').each(function() { $(this).remove() });
-			clone.find('script').each(function() { $(this).remove() });
-			clone.find('style').each(function() { $(this).remove() });
-			article.push(clone);
+	//console.log("Found starting node:");
+	//printNode(startNode);
+	var elements = extractNode(startNode);
+	return article.concat(elements);
+}
+
+//need to write our own depth first content extraction function
+//Because jquery doesn't include textnodes in find()
+//var simpleTags = /(IMG|H[2-9]|CODE|DFN|Q)/;
+//var inlineTags = /(A|EM|STRONG)/;
+function extractNode(node)
+{
+	var elements = new Array();
+	node.contents().each(function(){
+		if ( this.nodeType === 3) {
+			//console.log(this.textContent );
+			if (elements.length === 0) {
+				var tn = $("<p></p>");
+				tn.text($.trim(this.textContent));
+				elements.push(tn);
+			}
+			else
+			{
+				var last = elements[elements.length -1];
+				last.append(this);
+			}
 		}
-		else if(clone.prop("nodeName") === "IMG")
-		{
-			article.push(clone);
+		else if (inlineTags.test(this.nodeName)) {
+			//elements.push($("<p>" + this.nodeName + "</p>"));
+			if (elements.length === 0) {
+				var tn = $("<p></p>");
+				elements.push(tn);
+			}
+			var last = elements[elements.length -1];
+			last.append(" ");
+			last.append($(this));
+			last.append(" ");
 		}
-		else if(clone.prop("nodeName") === "H2")
-		{
-			article.push(clone);
+		else if (simpleTags.test(this.nodeName)) {
+			elements.push( $(this ) );
 		}
-		//printNode(clone);
+		else {
+			//elements.push($("<p>" + this.nodeName + "</p>"));
+			var tn = $("<p></p>");
+			elements.push(tn);
+			elements = elements.concat( extractNode( $(this) ) );
+		}
 	});
-	return article;
+	return elements;
 }
 
 function findContentTagRatio(node)
@@ -124,54 +183,51 @@ function findContentTagRatio(node)
 	var highestCT = 0;
 	var targetNode = null;
 	var c;
-	var comment = /.*comment.*/i;
-	node.find("div").each(function() {
-		//We skip comment divs
-		if(checkRegex(comment, $( this ) ) === false )
+	var body2 = node.clone();
+	//divs called comment, widget etc. will be ignored.
+	var comment = /.*(comment|advertisement|navigation|menu|disqus_thread|footer|side|reply|respond).*/i;
+	body2.find('div').each(function() {
+		if(checkRegex(comment, $( this ) ) )
 		{
-			c = $( this ).clone();
-			c.find('script').each(function() { $(this).remove() });
-			c.find('style').each(function() { $(this).remove() });
-			c.find('img').each(function() { $(this).remove() });
-			c.find('iframe').each(function() { $(this).remove() });
-			c.find('a').each(function() { $(this).remove() });
-			//Remove the divs that become empty after remove script, style,
-			c.find('div').each(function() {
-				if ( $.trim($( this ).text()) === ''){
-					$( this ).remove();
-				}
-			})
-			var content = $.trim(c.text());
-			//remove the ptags and span because we don't want to include it in calcuation.
-			c.find('p').each(function() { $(this).remove() });
-			c.find('span').each(function() { $(this).remove() });
-			c.find('ins').each(function() { $(this).remove() });
-			c.find('em').each(function() { $(this).remove() });
-			
-			var tags = c.find("*").length;
-			var CT;
-			if (tags === 0)
-			{
-				//If no other nested tags, all text is considered distributed over 1 tag.
-				CT = content.length;
-			}
-			else
-			{
-				CT = content.length/tags;
-			}
-			if (CT > highestCT) {
-					targetNode = this;
-					highestCT = CT;
-			}
-			if (CT > 0) {
-				printNode( $( this ) );
-				console.log(" " + CT);
-			}
+			$(this).remove();
+		}
+	});
+	body2.find("script, style, noscript, iframe, input, textarea").remove();
+	body2.find("*").each(function() {
+		c = $( this );
+
+		var content = $.trim(c.text()).replace(/\s\s/g, '');
+		
+		var tags = c.find("*").length;
+		var CT;
+		if (tags === 0)
+		{
+			//If no other nested tags, all text is considered distributed over 1 tag.
+			//CT = content.length;
+			CT = content.length;
+		}
+		else
+		{
+			CT = content.length/tags;
+		}
+		if (CT > highestCT)
+		{
+				targetNode = this;
+				highestCT = CT;
+		}
+		if (CT > 50)
+		{
+			printNode( $( this ) );
+			console.log(" " + CT);
+			//console.log( c.text());
 		}
 	});
 	console.log("Highest CT: " + highestCT);
-	console.log( $( targetNode).text());
-	return $( targetNode );
+	printNode($(targetNode));
+	console.log(targetNode.textContent);
+	//console.log( $( targetNode).text());
+	//Take the grand parent of the text
+	return $( targetNode ).parent().parent();
 }
 
 //Prints id, class and name for the given jQuery object
