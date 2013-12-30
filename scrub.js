@@ -65,7 +65,9 @@ function initDialog(data)
 //Find the div within the given node. Pass body for whole document
 function findMainDiv(node)
 {
-	var target = findContentTagRatio(node);
+	//Cloning the node so the script doesn't get removed in the original DOM
+	var text = getAllTextNodes(node.clone()[0]);
+	var target = findCluster(text, 5);
 	//printNode(target);
 	var maindiv = findArticleTags(target);
 	return maindiv;
@@ -141,8 +143,6 @@ function findArticleTags(startNode)
 
 //need to write our own depth first content extraction function
 //Because jquery doesn't include textnodes in find()
-//var simpleTags = /(IMG|H[2-9]|CODE|DFN|Q)/;
-//var inlineTags = /(A|EM|STRONG)/;
 function extractNode(node)
 {
 	var elements = new Array();
@@ -184,110 +184,86 @@ function extractNode(node)
 	return elements;
 }
 
-function findContentTagRatio(node)
+//Returns all textnode reference in an array
+function getAllTextNodes(root)
 {
-	var highestCT = 0;
-	var targetNode = null;
-	var c;
-	var body2 = node.clone();
+	removeHiddenTags(root);
+	var walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null, false);
 	
-	var records = new Array();
-	//divs called comment, etc. will be ignored.
+	var node;
+    var textNodes = new Array();
+
+    while(node = walker.nextNode()) {
+		if (node.textContent.trim().length > 0) {
+			textNodes.push(node);
+			console.log(node.textContent);
+		}
+    }
+	
+	return textNodes;
+}
+
+//r specifies the size of the cluster.
+function findCluster(textNodes, radius)
+{
+	if (textNodes.length === 0) {
+		return null;
+	}
+	if (textNodes.length < radius) {
+		return textNodes[0];
+	}
+	
+	var r = parseInt(radius/2);
+	
+	var highestC = 0;
+	var center = textNodes[0];
+	var c;
+	var index = 0;
+	var cStart, cEnd;
+	for(i=0;i<textNodes.length;i++)
+	{
+		cStart = i-r;
+		cEnd = i+r;
+		if (cStart < 0) {
+			cEnd = cEnd - cStart;
+			cStart = 0;
+		}
+		if (cEnd > textNodes.length-1) {
+			cStart = cStart - cEnd + textNodes.length+1;
+			cEnd = textNodes.length-1;
+		}
+		c = 0;
+		//console.log("Cluster: " + cStart + " to " + cEnd);
+		for(var j = cStart; j<=cEnd;j++)
+		{
+			c = c + textNodes[j].textContent.replace(/\s\s/g, '').trim().length;
+		}
+		if (c > highestC) {
+			highestC = c;
+			center = textNodes[i];
+			index = i;
+		}
+	}
+	cStart = index-r;
+	cEnd = index+r;
+	var lcp = textNodes[cStart];
+	for(i=cStart;i<cEnd;i++)
+	{
+		lcp = findLCP(lcp,textNodes[i+1]);
+	}
+	return $(lcp);
+}
+
+function removeHiddenTags(node) {
+	var node1 = $(node);
 	var comment = /.*(comment|advertisement|menu|disqus|footer|reply|respond|relate|share).*/i;
-	body2.find('div').each(function() {
+	node1.find('div').each(function() {
 		if(checkRegex(comment, $( this ) ) )
 		{
 			$(this).remove();
 		}
 	});
-	body2.find("script, style, noscript, iframe, input, textarea, aside").remove();
-	body2.find("*").each(function() {
-		c = $( this );
-
-		var content = $.trim(c.text()).replace(/\s\s/g, '');
-		
-		var tags = c.find("*").not("br,span,a").length;
-		var CT;
-		if (tags === 0)
-		{
-			//If no other nested tags, all text is considered distributed over 1 tag.
-			CT = content.length;
-			//CT = 0;
-		}
-		else
-		{
-			CT = content.length/tags;
-		}
-		if (CT > highestCT)
-		{
-				targetNode = this;
-				highestCT = CT;
-		}
-		if (CT > 0)
-		{
-			//printNode( $( this ) );
-			//console.log(" " + CT);
-			if (this.textContent.trim() != this.parentNode.textContent.trim()) {
-				console.log("Pushing new node into records");
-				records.push(new tagRecord(this, CT));
-			}
-			console.log( content );
-		}
-	});
-	console.log("Highest CT: " + highestCT);
-	printNode($(targetNode));
-	console.log(targetNode.textContent);
-	//console.log( $( targetNode).text());
-	//Take the grand parent of the text
-	//return $( targetNode ).parent().parent();
-	var parent = checkCluster(records);
-	if (parent === null) {
-		console.log("Nothing is found");
-		return null;
-	}
-	return $(parent);
-}
-
-function checkCluster(records)
-{
-	//This should never happen. Just incase things get weird.
-	if (records.length === 0) {
-		return null;
-	}
-	if (records.length < 3) {
-		return records[0].dom;
-	}
-	//var ClusterCT = new Array();
-	var i;
-	//First element only 2 elements.
-	var highestC = records[0].ratio + records[1].ratio;
-	var highestDom = records[0].dom;
-	var index = 0;
-	//ClusterCT.push(new tagRecord(records[0].dom, c));
-	for(i=1;i<records.length-1;i++)
-	{
-		c = records[i-1].ratio + records[i].ratio + records[i+1].ratio;
-		if (c > highestC) {
-			highestC = c;
-			highestDom = records[i].dom;
-			index = i;
-		}
-		//ClusterCT.push(new tagRecord(records[i].dom, c));
-		//console.log(c);
-		//printNode($(records[i].dom));
-	}
-	console.log("Cluster found in: ");
-	printNode($(highestDom));
-	//Find the lowest common parents of the cluster
-	var common1 = findLCP(records[index-1].dom, records[index].dom);
-	//console.log("First LCP");
-	//printNode($(common1));
-	//console.log("Third element:");
-	//printNode($(records[index+1].dom));
-	var common = findLCP(common1, records[index+1].dom);
-	//console.log("LCP");
-	//printNode($(common));
-	return common;
+	node1.find("script, style, noscript, iframe, input, textarea, aside").remove();
 }
 
 function findLCP(node1, node2) {
