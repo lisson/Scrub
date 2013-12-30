@@ -5,7 +5,7 @@ Copyright (c) 2013 Yi LI <yili604@gmail.com>
 */
 
 var isOpen = false;
-var simpleTags = /(IMG|H[2-9]|CODE|DFN|Q|TABLE)/i;
+var simpleTags = /(P|IMG|H[2-9]|CODE|DFN|Q|TABLE)/i;
 var inlineTags = /(A|EM|STRONG)/;
 
 function tagRecord(_dom, r)
