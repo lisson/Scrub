@@ -256,7 +256,7 @@ function findCluster(textNodes, radius)
 
 function removeHiddenTags(node) {
 	var node1 = $(node);
-	var comment = /.*(comment|advertisement|menu|disqus|footer|reply|respond|relate|share).*/i;
+	var comment = /.*(comment|advertisement|menu|disqus|reply|respond|hide).*/i;
 	node1.find('div').each(function() {
 		if(checkRegex(comment, $( this ) ) )
 		{
