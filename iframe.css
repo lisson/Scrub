@@ -32,9 +32,9 @@
 }
 
 .slidedownClass {
-	-webkit-animation: slidedown 1s; /* Safari and Chrome */
+	-webkit-animation: slidedown 0.5s; /* Safari and Chrome */
 }
 
 .slideupClass {
-	-webkit-animation: slideup 1s; /* Safari and Chrome */
+	-webkit-animation: slideup 0.5s; /* Safari and Chrome */
 }

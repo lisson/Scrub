@@ -9,13 +9,31 @@ var simpleTags = /(P|IMG|H[2-9]|CODE|DFN|Q|TABLE)/i;
 var inlineTags = /(A|EM|STRONG)/;
 
 $('body').click(function(e) {
+	if (isOpen === true) {
+		closeFrame();
+	}
+});
+/*
+$('body').on("keyup", function(e) {
+	if (e.keyCode === 27 && isOpen === true) {
+		closeFrame();
+	}
+});
+*/
+$(window).on("keyup", function(e) {
+	if (e.keyCode === 27 && isOpen === true) {
+		closeFrame();
+	}
+});
+
+function closeFrame() {
 	var iframe = $('#scrubextensionif');
 	iframe.removeClass("slidedownClass");
 	iframe.addClass("slideupClass");
 	$('#scruboverlay-shadow').hide();
 	isOpen = false;
 	document.body.style.overflowY = "visible";
-});
+}
 
 $('body').on("webkitAnimationEnd oanimationend msAnimationEnd animationend", "#scrubextensionif", function(e){
 	if (e.target.getAttribute("class") === "slideupClass") {
@@ -25,16 +43,21 @@ $('body').on("webkitAnimationEnd oanimationend msAnimationEnd animationend", "#s
 
 chrome.runtime.onMessage.addListener( function(message, sender, sendResponse){
 	//console.log(message.data);
-	if(message.command === 'scrub.InitDialog' && isOpen === false)
+	if(message.command === 'scrub.InitFrame' && isOpen === false)
 	{
-		initDialog(message.data);
+		initFrame(message);
 		//console.log(message.data);
 		isOpen = true;
 		document.body.style.overflowY = "hidden";
 	}
+	else
+	{
+		//frame is open. Close it
+		closeFrame();
+	}
 });
 
-function initDialog(data)
+function initFrame(data)
 {
 	var iframe = $("#scrubextensionif");
 	var overlay = $('#scruboverlay-shadow');
@@ -52,8 +75,14 @@ function initDialog(data)
 	}
 	applySettings(iframe, data);
 	iframe.ready(function(){
-		iframe.contents().find('body').empty();
-		iframe.contents().find('body').append(container);
+		var framebody = iframe.contents().find('body');
+		framebody.on("keyup", function(e) {
+			if (e.keyCode === 27 && isOpen === true) {
+				closeFrame();
+			}
+		});
+		framebody.empty();
+		framebody.append(container);
 		iframe.show();
 		overlay.show();
 	});
@@ -75,11 +104,15 @@ function findMainDiv(node)
 function applySettings(container, data)
 {
 	var style = $("<style></style>");
-	style.text(data);
+	var script = $("<script></script>")
+	style.text(data.data);
+	script.text(data.js);
 	//console.log(data);
 	//insert into the iframe
 	container.contents().find("head").find("style").remove();
+	container.contents().find("head").find("script").remove();
 	container.contents().find("head").append(style);
+	container.contents().find("head").append(script);
 }
 
 //recursively float up the dom tree from the target element
@@ -272,8 +305,8 @@ function findLCP(node1, node2) {
 	var n1 = node1;
 	var n2 = node2;
 	var parent;
-	console.log("n1:\n" + node1.textContent + "\n\n");
-	console.log("n2:\n" + node2.textContent + "\n\n");
+	//console.log("n1:\n" + node1.textContent + "\n\n");
+	//console.log("n2:\n" + node2.textContent + "\n\n");
 	while(found === false)
 	{
 		
