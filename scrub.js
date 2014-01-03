@@ -8,31 +8,22 @@ var isOpen = false;
 var simpleTags = /(P|IMG|H[2-9]|CODE|DFN|Q|TABLE)/i;
 var inlineTags = /(A|EM|STRONG)/;
 
-function tagRecord(_dom, r)
-{
-	this.dom = _dom;
-	this.ratio = r;
-}
-
 $('body').click(function(e) {
-	$('#scrubextensionif').remove();
-	$('#scruboverlay-shadow').remove();
+	var iframe = $('#scrubextensionif');
+	iframe.removeClass("slidedownClass");
+	iframe.addClass("slideupClass");
+	$('#scruboverlay-shadow').hide();
 	isOpen = false;
 	document.body.style.overflowY = "visible";
 });
 
-$('body').keyup(function(e) {
-	if (e.keyCode == 27) {
-		$('#scrubextensionif').remove();
-		$('#scruboverlay-shadow').remove();
-		isOpen = false;
-		document.body.style.overflowY = "visible";
+$('body').on("webkitAnimationEnd oanimationend msAnimationEnd animationend", "#scrubextensionif", function(e){
+	if (e.target.getAttribute("class") === "slideupClass") {
+		e.target.setAttribute("style", "display: none");
 	}
-});
+})
 
-chrome.runtime.onMessage.addListener(messageHandler);
-
-function messageHandler(message, sender, sendResponse){
+chrome.runtime.onMessage.addListener( function(message, sender, sendResponse){
 	//console.log(message.data);
 	if(message.command === 'scrub.InitDialog' && isOpen === false)
 	{
@@ -41,24 +32,32 @@ function messageHandler(message, sender, sendResponse){
 		isOpen = true;
 		document.body.style.overflowY = "hidden";
 	}
-}
+});
 
 function initDialog(data)
 {
+	var iframe = $("#scrubextensionif");
+	var overlay = $('#scruboverlay-shadow');
 	var container = $("<div></div>");
-	var article = findMainDiv( $('body') );
+	var	article = findMainDiv( $('body') );
 	for(var i = 0;i<article.length;i++)
 	{
 		container.append(article[i]);
 	}
-	var iframe = $('<iframe id="scrubextensionif"></iframe>');
-	var overlay = $('<div id="scruboverlay-shadow"></div>');
-	$('body').append(overlay);
-	$('body').append(iframe);
+	if (iframe.length === 0) {
+		iframe = $('<iframe id="scrubextensionif"></iframe>');
+		overlay = $('<div id="scruboverlay-shadow"></div>');
+		$('body').append(overlay);
+		$('body').append(iframe);
+	}
 	applySettings(iframe, data);
 	iframe.ready(function(){
+		iframe.contents().find('body').empty();
 		iframe.contents().find('body').append(container);
+		iframe.show();
+		overlay.show();
 	});
+	iframe.removeClass("slideupClass");
 	iframe.addClass("slidedownClass");
 }
 
@@ -79,6 +78,7 @@ function applySettings(container, data)
 	style.text(data);
 	//console.log(data);
 	//insert into the iframe
+	container.contents().find("head").find("style").remove();
 	container.contents().find("head").append(style);
 }
 
