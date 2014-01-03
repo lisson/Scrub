@@ -8,18 +8,27 @@ var isOpen = false;
 var simpleTags = /(P|IMG|H[2-9]|CODE|DFN|Q|TABLE)/i;
 var inlineTags = /(A|EM|STRONG)/;
 
+chrome.runtime.onMessage.addListener( function(message, sender, sendResponse){
+	if(message.command === "scrub.InitFrame" && isOpen === false)
+	{
+		initFrame(message);
+		//console.log(message.data);
+		isOpen = true;
+		document.body.style.overflowY = "hidden";
+	}
+	else
+	{
+		//frame is open. Close it
+		closeFrame();
+	}
+});
+
 $('body').click(function(e) {
 	if (isOpen === true) {
 		closeFrame();
 	}
 });
-/*
-$('body').on("keyup", function(e) {
-	if (e.keyCode === 27 && isOpen === true) {
-		closeFrame();
-	}
-});
-*/
+
 $(window).on("keyup", function(e) {
 	if (e.keyCode === 27 && isOpen === true) {
 		closeFrame();
@@ -40,22 +49,6 @@ $('body').on("webkitAnimationEnd oanimationend msAnimationEnd animationend", "#s
 		e.target.setAttribute("style", "display: none");
 	}
 })
-
-chrome.runtime.onMessage.addListener( function(message, sender, sendResponse){
-	//console.log(message.data);
-	if(message.command === 'scrub.InitFrame' && isOpen === false)
-	{
-		initFrame(message);
-		//console.log(message.data);
-		isOpen = true;
-		document.body.style.overflowY = "hidden";
-	}
-	else
-	{
-		//frame is open. Close it
-		closeFrame();
-	}
-});
 
 function initFrame(data)
 {

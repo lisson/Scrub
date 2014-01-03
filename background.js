@@ -30,7 +30,7 @@ chrome.browserAction.onClicked.addListener(function(tab) {
 			chrome.tabs.executeScript(tab.id, { file: "jquery-2.0.3.js" }, function(){
 				chrome.tabs.executeScript(tab.id, {file: "scrub.js" }, function(){
 						//Order is important here, thus keeping the message nested
-						chrome.tabs.sendMessage(tab.id, {command: "scrub.InitDialog",
+						chrome.tabs.sendMessage(tab.id, {command: "scrub.InitFrame",
 															data: Settings,
 															js: JScontent});
 				})
