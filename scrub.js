@@ -65,8 +65,10 @@ function initFrame(data)
 		overlay = $('<div id="scruboverlay-shadow"></div>');
 		$('body').append(overlay);
 		$('body').append(iframe);
+		iframe[0].contentWindow.document.open();
+		iframe[0].contentWindow.document.write(data.html);
 	}
-	applySettings(iframe, data);
+	applySettings(iframe, JSON.parse(data.data));
 	iframe.ready(function(){
 		var framebody = iframe.contents().find('body');
 		framebody.on("keyup", function(e) {
@@ -97,15 +99,31 @@ function findMainDiv(node)
 function applySettings(container, data)
 {
 	var style = $("<style></style>");
-	var script = $("<script></script>")
-	style.text(data.data);
-	script.text(data.js);
-	//console.log(data);
+	css = data["userCSS"];
+    style.text(css);
+    var cssString = "p { ";
+    if (/p[\s\S]*{[\s\S]*font\-family[\s\S]*\}/.test(css) === false){
+        //User did not specify font family in custom css
+        cssString += "font-family: " + data["font-family"] + ", sans-serif;\n";
+    }
+    if (/p[\s\S]*{[\s\S]*font\-size[\s\S]*\}/.test(css) === false){
+        cssString += "font-size: " + data["font-size"] + "px;\n";
+    }
+    if (/p[\s\S]*{[\s\S]*line\-height[\s\S]*\}/.test(css) === false){
+        if (data["line-height"]) {
+            cssString += "line-height: 2em;\n";
+        }
+    }
+    cssString += " }";
+    style.append(cssString);
+    if (/body[\s\S]*{[\s\S]*background\-color[\s\S]*\}/.test(css) === false){
+        cssString = "body{ background-color: " + data["background-color"] + "};"
+    }
+    style.append(cssString);
+	
 	//insert into the iframe
 	container.contents().find("head").find("style").remove();
-	container.contents().find("head").find("script").remove();
 	container.contents().find("head").append(style);
-	container.contents().find("head").append(script);
 }
 
 //recursively float up the dom tree from the target element
@@ -144,7 +162,8 @@ function findRelevantHeading(startnode)
 	if (current === null) {
 		return null;
 	}
-	var h = current.find("h1").first();
+	//Remove images within the h1 clone. Then removes it so the extraction doesn't duplicate.
+	var h = current.find("h" + i).first();
 	h.find("img").remove();
 	var e = h.clone();
 	h.remove();

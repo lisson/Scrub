@@ -1,14 +1,36 @@
 <html>
     <head>
         <script type="text/javascript" src="jquery-2.0.3.js"></script>
+        <script type="text/javascript" src="jscolor/jscolor.js"></script>
         <script type="text/javascript" src="options.js"></script>
+        <link rel="stylesheet" href="options.css" type="text/css"/>
     </head>
     <body>
-        <h1>CSS Options</h1>
+        <h1>Options</h1>
+        <iframe src="lorem.html" id="previewFrame">
+        </iframe>
         <input type="submit" id="save" value="Save">
-        <p>Insert Custom CSS here</p>
+        <div id="controls">
+            <label>Font Size:</label><span id="textSize">12</span><span>px</span>
+            <div id="sliderContainer">
+                <div id="sliderTab"></div>
+            </div>
+            <div id="textsizelabel"><span>12</span><span id="textmax">30</span></div>
+            <label>Font Family</label>
+            <select id="fontFamily">
+                <option value="Ubuntu">Ubuntu</option>
+                <option value="Open Sans">Open Sans</option>
+                <option value="Roboto">Roboto</option>
+                <option value="Oswold">Oswold</option>
+            </select>
+            <br/>
+            <label>Double Space</label><input type="checkbox" id="doublespace"/>
+            <br/>
+            <label>Colour</label><input id="bgcolor" class="color"/>
+        </div>
+        <label>Custom CSS</label>
         <div id="rules">
-            <textarea id="userCSS" rows="10" cols="50"></textarea>
+            <textarea id="userCSS" rows="15" cols="50"></textarea>
         </div>
     </body>
 </html>
