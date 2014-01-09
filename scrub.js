@@ -29,6 +29,7 @@ $('body').click(function(e) {
 	}
 });
 
+//Close on ESC
 $(window).on("keyup", function(e) {
 	if (e.keyCode === 27 && isOpen === true) {
 		closeFrame();
@@ -94,6 +95,133 @@ function findMainDiv(node)
 	//printNode(target);
 	var maindiv = findArticleTags(target);
 	return maindiv;
+}
+
+//Returns all textnode reference in an array
+function getAllTextNodes(root)
+{
+	removeHiddenTags(root);
+	var walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null, false);
+	
+	var node;
+    var textNodes = new Array();
+
+    while(node = walker.nextNode()) {
+		if (node.textContent.trim().length > 0) {
+			textNodes.push(node);
+			console.log(node.textContent);
+		}
+    }
+	return textNodes;
+}
+
+
+//r specifies the size of the cluster.
+function findCluster(textNodes, radius)
+{
+	if (textNodes.length === 0) {
+		return null;
+	}
+	if (textNodes.length < radius) {
+		return textNodes[0];
+	}
+	
+	var r = parseInt(radius/2);
+	
+	var highestC = 0;
+	var center = textNodes[0];
+	var c;
+	var index = 0;
+	var cStart, cEnd;
+	for(i=0;i<textNodes.length;i++)
+	{
+		cStart = i-r;
+		cEnd = i+r;
+		if (cStart < 0) {
+			cEnd = cEnd - cStart;
+			cStart = 0;
+		}
+		if (cEnd > textNodes.length-1) {
+			cStart = cStart - cEnd + textNodes.length+1;
+			cEnd = textNodes.length-1;
+		}
+		c = 0;
+		//console.log("Cluster: " + cStart + " to " + cEnd);
+		for(var j = cStart; j<=cEnd;j++)
+		{
+			c = c + textNodes[j].textContent.replace(/\s\s/g, '').trim().length;
+		}
+		if (c > highestC) {
+			highestC = c;
+			center = textNodes[i];
+			index = i;
+		}
+	}
+	cStart = index-r;
+	cEnd = index+r;
+	var lcp = textNodes[cStart];
+	for(i=cStart;i<cEnd;i++)
+	{
+		lcp = findLCP(lcp,textNodes[i+1]);
+	}
+	return $(lcp);
+}
+
+//Saves all p and img elements into an array
+//Takes jQuery object
+function findArticleTags(startNode)
+{
+	var article = new Array();
+	var title = findRelevantHeading(startNode);
+	if(title != null && title.prop("nodeName") != "BODY")
+	{
+		article.push(title);
+	}
+	//console.log("Found starting node:");
+	//printNode(startNode);
+	var elements = extractNode(startNode);
+	return article.concat(elements);
+}
+
+//need to write our own depth first content extraction function
+//Because jquery doesn't include textnodes in find()
+function extractNode(node)
+{
+	var elements = new Array();
+	node.contents().each(function(){
+		if ( this.nodeType === 3) {
+			//console.log(this.textContent );
+			if (elements.length === 0) {
+				var tn = $("<p></p>");
+				tn.text($.trim(this.textContent));
+				elements.push(tn);
+			}
+			else
+			{
+				var last = elements[elements.length -1];
+				last.append(this);
+			}
+		}
+		else if (inlineTags.test(this.nodeName)) {
+			if (elements.length === 0) {
+				var tn = $("<p></p>");
+				elements.push(tn);
+			}
+			var last = elements[elements.length -1];
+			last.append(" ");
+			last.append($(this));
+			last.append(" ");
+		}
+		else if (simpleTags.test(this.nodeName)) {
+			elements.push( $(this ) );
+		}
+		else {
+			var tn = $("<p></p>");
+			elements.push(tn);
+			elements = elements.concat( extractNode( $(this) ) );
+		}
+	});
+	return elements;
 }
 
 function applySettings(container, data)
@@ -168,135 +296,6 @@ function findRelevantHeading(startnode)
 	var e = h.clone();
 	h.remove();
 	return e;
-}
-
-//Saves all p and img elements into an array
-//Takes jQuery object
-function findArticleTags(startNode)
-{
-	var article = new Array();
-	var title = findRelevantHeading(startNode);
-	if(title != null && title.prop("nodeName") != "BODY")
-	{
-		article.push(title.clone());
-	}
-	//console.log("Found starting node:");
-	//printNode(startNode);
-	var elements = extractNode(startNode);
-	return article.concat(elements);
-}
-
-//need to write our own depth first content extraction function
-//Because jquery doesn't include textnodes in find()
-function extractNode(node)
-{
-	var elements = new Array();
-	node.contents().each(function(){
-		if ( this.nodeType === 3) {
-			//console.log(this.textContent );
-			if (elements.length === 0) {
-				var tn = $("<p></p>");
-				tn.text($.trim(this.textContent));
-				elements.push(tn);
-			}
-			else
-			{
-				var last = elements[elements.length -1];
-				last.append(this);
-			}
-		}
-		else if (inlineTags.test(this.nodeName)) {
-			//elements.push($("<p>" + this.nodeName + "</p>"));
-			if (elements.length === 0) {
-				var tn = $("<p></p>");
-				elements.push(tn);
-			}
-			var last = elements[elements.length -1];
-			last.append(" ");
-			last.append($(this));
-			last.append(" ");
-		}
-		else if (simpleTags.test(this.nodeName)) {
-			elements.push( $(this ) );
-		}
-		else {
-			//elements.push($("<p>" + this.nodeName + "</p>"));
-			var tn = $("<p></p>");
-			elements.push(tn);
-			elements = elements.concat( extractNode( $(this) ) );
-		}
-	});
-	return elements;
-}
-
-//Returns all textnode reference in an array
-function getAllTextNodes(root)
-{
-	removeHiddenTags(root);
-	var walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null, false);
-	
-	var node;
-    var textNodes = new Array();
-
-    while(node = walker.nextNode()) {
-		if (node.textContent.trim().length > 0) {
-			textNodes.push(node);
-			console.log(node.textContent);
-		}
-    }
-	
-	return textNodes;
-}
-
-//r specifies the size of the cluster.
-function findCluster(textNodes, radius)
-{
-	if (textNodes.length === 0) {
-		return null;
-	}
-	if (textNodes.length < radius) {
-		return textNodes[0];
-	}
-	
-	var r = parseInt(radius/2);
-	
-	var highestC = 0;
-	var center = textNodes[0];
-	var c;
-	var index = 0;
-	var cStart, cEnd;
-	for(i=0;i<textNodes.length;i++)
-	{
-		cStart = i-r;
-		cEnd = i+r;
-		if (cStart < 0) {
-			cEnd = cEnd - cStart;
-			cStart = 0;
-		}
-		if (cEnd > textNodes.length-1) {
-			cStart = cStart - cEnd + textNodes.length+1;
-			cEnd = textNodes.length-1;
-		}
-		c = 0;
-		//console.log("Cluster: " + cStart + " to " + cEnd);
-		for(var j = cStart; j<=cEnd;j++)
-		{
-			c = c + textNodes[j].textContent.replace(/\s\s/g, '').trim().length;
-		}
-		if (c > highestC) {
-			highestC = c;
-			center = textNodes[i];
-			index = i;
-		}
-	}
-	cStart = index-r;
-	cEnd = index+r;
-	var lcp = textNodes[cStart];
-	for(i=cStart;i<cEnd;i++)
-	{
-		lcp = findLCP(lcp,textNodes[i+1]);
-	}
-	return $(lcp);
 }
 
 function removeHiddenTags(node) {
