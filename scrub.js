@@ -8,48 +8,57 @@ var isOpen = false;
 var simpleTags = /(P|IMG|H[2-9]|CODE|DFN|Q|TABLE)/i;
 var inlineTags = /(A|EM|STRONG)/;
 
-chrome.runtime.onMessage.addListener( function(message, sender, sendResponse){
-	if(message.command === "scrub.InitFrame" && isOpen === false)
-	{
-		initFrame(message);
-		//console.log(message.data);
-		isOpen = true;
-		document.body.style.overflowY = "hidden";
-	}
-	else
-	{
-		//frame is open. Close it
-		closeFrame();
-	}
-});
-
-$('body').click(function(e) {
-	if (isOpen === true) {
-		closeFrame();
-	}
-});
-
-//Close on ESC
-$(window).on("keyup", function(e) {
-	if (e.keyCode === 27 && isOpen === true) {
-		closeFrame();
-	}
+$(document).ready(function()
+{
+	chrome.runtime.onMessage.addListener( function(message, sender, sendResponse){
+		if(message.command === "scrub.InitFrame" && isOpen === false)
+		{
+			initFrame(message);
+			isOpen = true;
+			document.body.style.overflowY = "hidden";
+		}
+		else
+		{
+			//When the button is clicked between loaded and complete state,
+			//User can actually inject multiple instances of the script and mess up isOpen.
+			//Logically isOpen has to be true to get to this branch, but you have to check it explicitly
+			//for some race condition that I cannot explain.
+			if (isOpen) {
+				closeFrame();
+			}
+		}
+		sendResponse({status: "OK"});
+	});
+	$('body').click(function(e) {
+		if (isOpen === true) {
+			closeFrame();
+		}
+	});
+	
+	$('body').on("webkitAnimationEnd oanimationend msAnimationEnd animationend", "#scrubextensionif", function(e){
+		if (e.target.getAttribute("class") === "slideupClass") {
+			e.target.setAttribute("style", "display: none");
+		}
+	});
+	
+	//Close on ESC
+	$(window).on("keyup", function(e) {
+		if (e.keyCode === 27 && isOpen === true) {
+			closeFrame();
+		}
+	});
 });
 
 function closeFrame() {
 	var iframe = $('#scrubextensionif');
-	iframe.removeClass("slidedownClass");
-	iframe.addClass("slideupClass");
-	$('#scruboverlay-shadow').hide();
-	isOpen = false;
-	document.body.style.overflowY = "visible";
-}
-
-$('body').on("webkitAnimationEnd oanimationend msAnimationEnd animationend", "#scrubextensionif", function(e){
-	if (e.target.getAttribute("class") === "slideupClass") {
-		e.target.setAttribute("style", "display: none");
+	if (iframe.length > 0) {
+		iframe.removeClass("slidedownClass");
+		iframe.addClass("slideupClass");
+		$('#scruboverlay-shadow').hide();
+		isOpen = false;
+		document.body.style.overflowY = "visible";
 	}
-})
+}
 
 function initFrame(data)
 {
@@ -68,20 +77,21 @@ function initFrame(data)
 		$('body').append(iframe);
 		iframe[0].contentWindow.document.open();
 		iframe[0].contentWindow.document.write(data.html);
+		iframe.ready(function(){
+			var framebody = iframe.contents().find('body');
+			framebody.on("keyup", function(e) {
+				if (e.keyCode === 27 && isOpen === true) {
+					closeFrame();
+				}
+			});
+		});
 	}
 	applySettings(iframe, JSON.parse(data.data));
-	iframe.ready(function(){
-		var framebody = iframe.contents().find('body');
-		framebody.on("keyup", function(e) {
-			if (e.keyCode === 27 && isOpen === true) {
-				closeFrame();
-			}
-		});
-		framebody.empty();
-		framebody.append(container);
-		iframe.show();
-		overlay.show();
-	});
+	var framebody = iframe.contents().find('body');
+	framebody.empty();
+	framebody.append(container);
+	iframe.show();
+	overlay.show();
 	iframe.removeClass("slideupClass");
 	iframe.addClass("slidedownClass");
 }
@@ -109,7 +119,7 @@ function getAllTextNodes(root)
     while(node = walker.nextNode()) {
 		if (node.textContent.trim().length > 0) {
 			textNodes.push(node);
-			console.log(node.textContent);
+			//console.log(node.textContent);
 		}
     }
 	return textNodes;

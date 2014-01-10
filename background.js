@@ -25,24 +25,29 @@ function loadRules(){
 }
 
 chrome.browserAction.onClicked.addListener(function(tab) {
+	//Not injecting anything until tab is loaded.
+	if (tab.status === "loading") {
+		console.log("Loading tab: " + tab.id);
+		return;
+	}
 	var Settings = loadRules();
-	console.log(Settings);
 	chrome.tabs.sendMessage(tab.id, {command: "scrub.InitFrame", data: Settings, html:framehtml}, function(response) {	
 		if (response) {
 			//Message is received, do nothing.
 			console.log(response);
 		}
 		else {
+			console.log("Injecting script into: " + tab.id);
 			chrome.tabs.executeScript(tab.id, { file: "jquery-2.0.3.js" }, function(){
 				chrome.tabs.executeScript(tab.id, {file: "scrub.js" }, function(){
 						//Order is important here, thus keeping the message nested
 						chrome.tabs.sendMessage(tab.id, {command: "scrub.InitFrame",
 															data: Settings,
 															html: framehtml});
+						chrome.tabs.insertCSS( { file: "iframe.css" } );
 				})
 			});
 		}
-		chrome.tabs.insertCSS( { file: "iframe.css" } );
 	});
 });
 
